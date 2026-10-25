@@ -1,5 +1,12 @@
 # dsh-workspace-status
 
+[![npm](https://img.shields.io/npm/v/dsh-workspace-status?label=npm&color=blue)](https://www.npmjs.com/package/dsh-workspace-status)
+[![npm provenance](https://img.shields.io/badge/npm%20provenance-SLSA%20v1-brightgreen)](https://www.npmjs.com/package/dsh-workspace-status)
+[![test](https://github.com/Stijnus/dsh-workspace-status/actions/workflows/test.yml/badge.svg)](https://github.com/Stijnus/dsh-workspace-status/actions/workflows/test.yml)
+[![license](https://img.shields.io/npm/l/dsh-workspace-status)](LICENSE)
+
+[English](./README.md) · [中文](./README.zh-CN.md)
+
 Colored status marks on the **workspace rows** of the DeepSeek Harness sidebar:
 waiting for you, running, and just finished.
 
@@ -20,6 +27,18 @@ a session row puts its timestamp — and does not displace the title. It appears
 for expanded and collapsed groups alike, and its state is described to
 screen-reader users in a hidden sentence ("Workspace activity: 2 running, 1
 waiting for you — api, web").
+
+## Quick start
+
+```sh
+dsh plugin --profile web add dsh-workspace-status
+```
+
+Restart the Harness (or refresh the Web UI). Workspace rows gain a colored status mark.
+
+<sub>More from this suite: [Moodboard](https://github.com/Stijnus/dsh-moodboard) · [Composer Predictions](https://github.com/Stijnus/dsh-composer-predictions) · [Move to Workspace](https://github.com/Stijnus/dsh-move-to-workspace) · [Workspace Status](https://github.com/Stijnus/dsh-workspace-status) · [Prompt Rewrite](https://github.com/Stijnus/dsh-prompt-optimizer)</sub>
+
+<sub>⭐ If this saves you a step, a star helps the next DSH user find it.</sub>
 
 ## Preview
 
