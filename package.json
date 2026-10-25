@@ -1,0 +1,77 @@
+{
+  "name": "dsh-workspace-status",
+  "version": "0.1.0",
+  "description": "Colored status marks on DeepSeek Harness sidebar workspaces: waiting for you, running, and recently finished.",
+  "type": "module",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "sidebar",
+    "workspace",
+    "status",
+    "indicator"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-client-ui-session"
+      ]
+    },
+    "compatibility": {
+      "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+    },
+    "catalog": {
+      "summary": {
+        "en": "Colored status marks on sidebar workspace rows: waiting for you, running, and recently finished, so the next workspace to open is obvious.",
+        "zh": "在侧边栏工作区行上显示彩色状态：等待你处理、运行中、刚刚完成，一眼看出下一个该打开的工作区。"
+      },
+      "category": "ui"
+    }
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0",
+    "node": ">=22.18.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stijnus/dsh-workspace-status.git"
+  },
+  "homepage": "https://github.com/Stijnus/dsh-workspace-status#readme",
+  "bugs": {
+    "url": "https://github.com/Stijnus/dsh-workspace-status/issues"
+  }
+}

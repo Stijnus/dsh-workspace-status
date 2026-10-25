@@ -1,0 +1,6 @@
+# The bundle layer this package contributes to a dsh profile.
+# Rows inserted here become Loader entries once the profile lists this package
+# in package.json -> dsh.profile.bundles (the Plugins page does both steps).
+- insert:
+    - id: workspace-status
+      name: dsh-workspace-status

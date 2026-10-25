@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Stijnus · DSH plugins",
+    "zh": "Stijnus · DSH 插件"
+  },
+  "description": {
+    "en": "Plugins by Stijnus for DeepSeek Harness.",
+    "zh": "Stijnus 的 DeepSeek Harness 插件。"
+  },
+  "metadata": {
+    "categories": {
+      "ui-experience": {
+        "title": {
+          "en": "UI & Experience",
+          "zh": "界面与体验"
+        }
+      }
+    },
+    "labels": {},
+    "sortKeys": {}
+  },
+  "plugins": [
+    {
+      "name": "dsh-workspace-status",
+      "title": {
+        "en": "Workspace Status",
+        "zh": "工作区状态"
+      },
+      "description": {
+        "en": "Colored status marks on sidebar workspace rows: waiting for you, running, and recently finished — aggregated from the group's sessions, without replacing the sidebar.",
+        "zh": "侧边栏工作区行上的状态标记：等待你处理、运行中、刚刚完成——聚合自该分组内的会话，不替换侧边栏。"
+      },
+      "author": "stijnus",
+      "homepage": "https://github.com/Stijnus/dsh-workspace-status",
+      "repository": {
+        "url": "https://github.com/Stijnus/dsh-workspace-status"
+      },
+      "metadata": {
+        "category": "ui-experience",
+        "keywords": [
+          "dsh",
+          "dsh-plugin",
+          "deepseek-harness",
+          "sidebar",
+          "workspace",
+          "status",
+          "indicator"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.1.0",
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org/"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+          }
+        }
+      ]
+    }
+  ]
+}

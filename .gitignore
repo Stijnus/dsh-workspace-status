@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+*.tgz
+
+# local verification artifacts (screenshots of the running app)
+.verification/
