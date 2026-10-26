@@ -16,6 +16,10 @@ function makeReact() {
     useRef(initial) {
       return { current: initial }
     },
+    useState(initial) {
+      return [typeof initial === 'function' ? initial() : initial, () => {}]
+    },
+    useEffect() {},
     useMemo(factory) {
       return factory()
     },
@@ -37,6 +41,7 @@ function loadClient() {
   const react = makeReact()
   const module = definition.factory((name) => {
     if (name === 'react') return react
+    if (name === 'react-dom') return { createPortal: (children) => children }
     throw new Error(`unexpected require: ${name}`)
   })
   return { definition, module, react }
@@ -69,8 +74,8 @@ function workspace(workspaceId, title, sessionIds) {
  * Render the slot entry with the three standard feeds.
  * `statuses` is an object keyed by session id; missing entries mean "unknown".
  */
-function render(component, { items = [], archived = [], sessions = {}, statuses = {} }) {
-  const workspaces = { items, archivedSessionIds: archived }
+function render(component, { items = [], archived = [], pinned = [], sessions = {}, statuses = {} }) {
+  const workspaces = { items, archivedSessionIds: archived, pinnedSessionIds: pinned }
   const sessionState = { byId: sessions }
   const statusMap = new Map(Object.entries(statuses))
   return component({
@@ -95,14 +100,13 @@ function nodes(tree, out = []) {
 function styleText(tree) {
   const style = nodes(tree).find((node) => node.type === 'style')
   assert.ok(style, 'the entry publishes a stylesheet')
-  assert.equal(style.props['data-plugin-css'], 'dsh-workspace-status/rows.css')
+  assert.equal(style.props['data-plugin-css'], 'dsh-workspace-status/sidebar.css')
   return style.children.join('')
 }
 
 function srText(tree) {
   const span = nodes(tree).find((node) => node.type === 'span' && node.props.className === 'dsws-sr')
-  assert.ok(span, 'the entry publishes a hidden description')
-  return span.children.join('')
+  return span === undefined ? null : span.children.join('')
 }
 
 const NOW = Date.now()
@@ -121,9 +125,11 @@ test('the module registers exactly one additive footer entry', () => {
   assert.equal(typeof spec.order, 'number')
 })
 
-test('renders nothing when the standard hooks are absent', () => {
+test('renders nothing visible when the standard hooks are absent', () => {
   const { registrations } = mountClient()
-  assert.equal(registrations[0].component({}), null)
+  const tree = registrations[0].component({})
+  assert.ok(!styleText(tree).includes('::after'))
+  assert.equal(srText(tree), null)
 })
 
 test('the session summary is the fallback when the status feed is unknown', () => {
@@ -143,7 +149,9 @@ test('an idle workspace publishes nothing', () => {
     sessions: { s1: { running: false, updatedAt: NOW } },
     statuses: { s1: { running: false, completionUnread: false } },
   })
-  assert.equal(tree, null)
+  const css = styleText(tree)
+  assert.ok(!css.includes('::after'))
+  assert.equal(srText(tree), null)
 })
 
 test('a running session marks its workspace with the running ring', () => {
@@ -178,7 +186,8 @@ test('waiting for the user outranks running and uses the warning color', () => {
   const css = styleText(tree)
   assert.ok(css.includes('[data-row-key="workspace:api"]::after'))
   assert.ok(css.includes('--dsw-alias-state-warn-primary'))
-  assert.ok(!css.includes('dsws-spin'))
+  // The shared `@keyframes dsws-spin` is always present; the running RULE is not.
+  assert.ok(!css.includes('[data-row-key="workspace:api"]::after{content:"";flex:none;box-sizing:border-box;width:10px'))
   assert.match(srText(tree), /1 waiting for you/)
 })
 
@@ -208,7 +217,9 @@ test('archived sessions never mark a workspace', () => {
     sessions: { s1: { running: true, updatedAt: NOW } },
     statuses: { s1: { running: true } },
   })
-  assert.equal(tree, null)
+  const css = styleText(tree)
+  assert.ok(!css.includes('::after'))
+  assert.equal(srText(tree), null)
 })
 
 test('a recently finished unread session marks the workspace green', () => {
@@ -231,7 +242,9 @@ test('a stale unread completion does not mark the workspace', () => {
     sessions: { s1: { running: false, updatedAt: NOW - 2 * 60 * 60 * 1000 } },
     statuses: { s1: { running: false, completionUnread: true } },
   })
-  assert.equal(tree, null)
+  const css = styleText(tree)
+  assert.ok(!css.includes('::after'))
+  assert.equal(srText(tree), null)
 })
 
 test('sessions outside every workspace mark the ungrouped bucket', () => {
@@ -307,4 +320,124 @@ test('the hidden description is bounded to four workspace names', () => {
   const text = srText(tree)
   assert.match(text, /5 running/)
   assert.match(text, /and 1 more/)
+})
+
+const PIN_NOW = Date.now()
+
+function pinnedItems() {
+  return [
+    workspace('w-api', 'api', ['s1', 's2', 'u']),
+    workspace('w-web', 'web', ['s3']),
+  ]
+}
+
+function pinnedSessions() {
+  return {
+    s1: { id: 's1', displayTitle: 'API one', updatedAt: PIN_NOW, running: false },
+    s2: { id: 's2', displayTitle: 'API two', updatedAt: PIN_NOW - 60_000, running: false },
+    s3: { id: 's3', displayTitle: 'Web one', updatedAt: PIN_NOW - 3 * 60 * 60 * 1000, running: false },
+    u: { id: 'u', displayTitle: 'Ungrouped one', updatedAt: PIN_NOW, running: false },
+  }
+}
+
+test('pinned sessions group per workspace in workspace order', () => {
+  const { module } = loadClient()
+  const { buildPinnedView } = module.__test
+  const statuses = new Map([['s1', { running: true }]])
+  const view = buildPinnedView(['s3', 's2', 's1'], pinnedItems(), pinnedSessions(), statuses, [], PIN_NOW)
+  assert.equal(view.groups.map((group) => group.key).join(','), 'w-api,w-web')
+  assert.equal(view.groups[0].sessions.map((session) => session.id).join(','), 's2,s1')
+  assert.equal(view.groups[1].sessions.map((session) => session.id).join(','), 's3')
+  assert.equal(view.total, 3)
+  assert.equal(view.ids.join(','), 's2,s1,s3')
+  assert.equal(view.groups[0].sessions[1].mark, 'ongoing')
+  assert.equal(view.groups[0].sessions[1].title, 'API one')
+})
+
+test('the pinned view skips archived, blank and subagent rows and ends ungrouped', () => {
+  const { module } = loadClient()
+  const { buildPinnedView } = module.__test
+  const items = [workspace('w1', 'one', ['a', 'b', 'c', 'd'])]
+  const sessions = {
+    a: { id: 'a', displayTitle: 'A', updatedAt: PIN_NOW, running: false },
+    b: { id: 'b', displayTitle: 'B', updatedAt: PIN_NOW, running: false },
+    c: { id: 'c', displayTitle: '', updatedAt: PIN_NOW, running: false, blank: true },
+    d: { id: 'd', displayTitle: 'D', updatedAt: 0, running: false, origin: 'subagent', parentId: 'a' },
+    u: { id: 'u', displayTitle: 'U', updatedAt: PIN_NOW, running: false },
+  }
+  const view = buildPinnedView(['a', 'b', 'c', 'd', 'u'], items, sessions, undefined, ['b'], PIN_NOW)
+  assert.equal(view.groups.map((group) => group.key).join(','), 'w1,')
+  assert.equal(view.groups[0].sessions.map((session) => session.id).join(','), 'a')
+  assert.equal(view.groups[1].sessions.map((session) => session.id).join(','), 'u')
+  assert.equal(view.total, 2)
+  // Blank and subagent rows have no ordinary row to lift; missing summaries are skipped too.
+  assert.equal(buildPinnedView(['nope'], items, sessions, undefined, [], PIN_NOW).ids.length, 0)
+})
+
+test('session marks follow the shipped wait > run > finish precedence', () => {
+  const { module } = loadClient()
+  const { sessionMark } = module.__test
+  const sessions = { s1: { running: false } }
+  const statuses = new Map([
+    ['s1', { running: true, pendingInteraction: { kind: 'approval' } }],
+    ['s2', { running: true }],
+    ['s3', { running: false, completionUnread: true }],
+    ['s4', { running: false, completionUnread: false }],
+  ])
+  assert.equal(sessionMark('s1', sessions.s1, statuses, new Map(), sessions), 'warning')
+  assert.equal(sessionMark('s2', {}, statuses, new Map(), sessions), 'ongoing')
+  assert.equal(sessionMark('s3', {}, statuses, new Map(), sessions), 'done')
+  assert.equal(sessionMark('s4', {}, statuses, new Map(), sessions), undefined)
+  assert.equal(sessionMark('s5', { running: true }, undefined, new Map(), sessions), 'ongoing')
+})
+
+test('the hide rules lift only the rows the pinned section actually shows', () => {
+  const { module } = loadClient()
+  const { hideCss } = module.__test
+  assert.equal(hideCss([]), '')
+  const css = hideCss(['a', 'b"c'])
+  assert.ok(css.includes('[data-row-key="session:a"]'))
+  assert.ok(css.includes('display:none!important'))
+  assert.ok(css.includes('[data-row-key="session:b\\"c"]'))
+})
+
+test('relative labels match the sidebar vocabulary', () => {
+  const { module } = loadClient()
+  const { relativeTime } = module.__test
+  assert.equal(relativeTime(PIN_NOW, PIN_NOW), 'now')
+  assert.equal(relativeTime(PIN_NOW - 5 * 60_000, PIN_NOW), '5min')
+  assert.equal(relativeTime(PIN_NOW - 2 * 60 * 60_000, PIN_NOW), '2h')
+  assert.equal(relativeTime(PIN_NOW - 3 * 24 * 60 * 60_000, PIN_NOW), '3d')
+  assert.equal(relativeTime(0, PIN_NOW), '')
+})
+
+test('without a mounted host the pinned row stays visible in the official list', () => {
+  // The hide rules are only emitted once the portal container is attached;
+  // if DOM insertion ever fails, sessions must remain reachable in the tree.
+  const { registrations } = mountClient()
+  const tree = render(registrations[0].component, {
+    items: [workspace('w-api', 'api', ['s1', 's2'])],
+    pinned: ['s1'],
+    sessions: {
+      s1: { id: 's1', displayTitle: 'One', updatedAt: PIN_NOW, running: false },
+      s2: { id: 's2', displayTitle: 'Two', updatedAt: PIN_NOW, running: false },
+    },
+    statuses: {},
+  })
+  const css = styleText(tree)
+  assert.ok(!css.includes('[data-row-key="session:s1"]'))
+  assert.ok(!css.includes('[data-row-key="session:s2"]'))
+})
+
+test('an archived pinned session is neither shown nor hidden', () => {
+  const { registrations } = mountClient()
+  const tree = render(registrations[0].component, {
+    items: [workspace('w-api', 'api', ['s1'])],
+    archived: ['s1'],
+    pinned: ['s1'],
+    sessions: { s1: { id: 's1', displayTitle: 'One', updatedAt: PIN_NOW, running: false } },
+    statuses: {},
+  })
+  const css = styleText(tree)
+  assert.ok(!css.includes('data-row-key="session:s1"'))
 })

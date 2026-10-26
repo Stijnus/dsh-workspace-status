@@ -84,6 +84,17 @@ test('locale dictionaries cover the same keys', async () => {
     'activity.unnamed',
     'activity.more',
     'activity.listSeparator',
+    'pinned.title',
+    'pinned.untitled',
+    'pinned.unpin',
+    'pinned.unpinAria',
+    'pinned.sectionAria',
+    'pinned.groupAria',
+    'pinned.rail',
+    'time.now',
+    'time.minutes',
+    'time.hours',
+    'time.days',
   ]) {
     assert.equal(typeof en[key], 'string', `en.${key}`)
     assert.equal(typeof zh[key], 'string', `zh.${key}`)

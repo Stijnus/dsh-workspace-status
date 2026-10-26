@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "工作区状态",
-    "description": "侧边栏里，某个工作区有会话等待你处理、正在运行或刚刚完成时，在该工作区行上显示状态标记。"
+    "description": "侧边栏里，某个工作区有会话等待你处理、正在运行或刚刚完成时，在该工作区行上显示状态标记；已置顶的会话则集中显示在按工作区分组的置顶区。"
   },
   "activity.summary": "工作区状态：{clauses} — {names}",
   "activity.waiting": "{n} 个等待你处理",
@@ -9,5 +9,16 @@
   "activity.done": "{n} 个刚刚完成",
   "activity.unnamed": "未分组",
   "activity.more": "等 {n} 个",
-  "activity.listSeparator": "、"
+  "activity.listSeparator": "、",
+  "pinned.title": "已置顶",
+  "pinned.untitled": "未命名",
+  "pinned.unpin": "取消置顶",
+  "pinned.unpinAria": "取消置顶 {title}",
+  "pinned.sectionAria": "已置顶会话",
+  "pinned.groupAria": "{workspace} 中的已置顶会话",
+  "pinned.rail": "已置顶会话",
+  "time.now": "刚刚",
+  "time.minutes": "{n} 分钟",
+  "time.hours": "{n} 小时",
+  "time.days": "{n} 天"
 }

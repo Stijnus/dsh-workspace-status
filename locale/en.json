@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Workspace Status",
-    "description": "Marks each workspace in the sidebar while one of its sessions is waiting for you, running, or recently finished."
+    "description": "Marks each workspace in the sidebar while one of its sessions is waiting for you, running, or recently finished, and lifts pinned conversations into their own per-workspace section."
   },
   "activity.summary": "Workspace activity: {clauses} — {names}",
   "activity.waiting": "{n} waiting for you",
@@ -9,5 +9,16 @@
   "activity.done": "{n} recently finished",
   "activity.unnamed": "Ungrouped",
   "activity.more": "and {n} more",
-  "activity.listSeparator": ", "
+  "activity.listSeparator": ", ",
+  "pinned.title": "Pinned",
+  "pinned.untitled": "Untitled",
+  "pinned.unpin": "Unpin",
+  "pinned.unpinAria": "Unpin {title}",
+  "pinned.sectionAria": "Pinned conversations",
+  "pinned.groupAria": "Pinned in {workspace}",
+  "pinned.rail": "Pinned conversations",
+  "time.now": "now",
+  "time.minutes": "{n}min",
+  "time.hours": "{n}h",
+  "time.days": "{n}d"
 }

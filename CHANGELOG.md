@@ -1,18 +1,36 @@
 # Changelog
 
-## 0.1.0 — 2026-10-25
-
-### Added
-
-- First public release: coloured status marks on workspace rows (waiting, running,
-  recently finished) with locale-aware labels and a settings toggle.
-- Declares `dsh.catalog` so plugin markets place it under UI with a real summary.
-
 All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-10-26
+
+### Added
+
+- Pinned conversations section above the Workspaces list. Pinned conversations
+  are lifted out of the regular workspace groups and rendered per workspace
+  with the shipped folder-header treatment, their live status dot, relative
+  time, current-session highlight, group counts and a filled pin icon on every
+  row. Clicking the pin unpins immediately.
+- Section and group collapse state persisted in browser storage; the section
+  caps its height and scrolls independently.
+- The section is driven by the registry-global `pinnedSessionIds` Workspace
+  feed, so pins survive restarts and stay in sync with the official browser;
+  unpin uses `ctx.workspaces.unpinSession`, opening a row uses
+  `ctx.uiWorkspace.openSession`.
+- Pinned rows are hidden from the official grouped/flat tree with generated
+  `display:none` rules; search-result rows are untouched.
+
+### Changed
+
+- Component now renders a React portal into a container inserted before the
+  sidebar browsing region, in addition to the emitted row stylesheet. The
+  official Workspace browser is still not replaced.
+- The workspace-mark mount now always publishes the stylesheet and portal
+  anchor, so pins added while mounted appear without a reload.
 
 ## [0.1.0] - 2026-10-25
 
@@ -29,3 +47,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Zero-fork implementation: an additive `sidebar.footer.action` entry that
   publishes row CSS keyed on `data-row-key="workspace:<id>"`, with no DOM
   writes, observers or host services.
+- Declares `dsh.catalog` so plugin markets place it under UI with a real summary.

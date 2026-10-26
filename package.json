@@ -1,7 +1,7 @@
 {
   "name": "dsh-workspace-status",
-  "version": "0.1.0",
-  "description": "Colored status marks on DeepSeek Harness sidebar workspaces: waiting for you, running, and recently finished.",
+  "version": "0.2.0",
+  "description": "Workspace status marks and a pinned-conversation section for the DeepSeek Harness sidebar.",
   "type": "module",
   "license": "MIT",
   "main": "index.js",
@@ -15,7 +15,10 @@
     "sidebar",
     "workspace",
     "status",
-    "indicator"
+    "indicator",
+    "pin",
+    "pinned",
+    "conversation"
   ],
   "publishConfig": {
     "access": "public"
@@ -56,8 +59,8 @@
     },
     "catalog": {
       "summary": {
-        "en": "Colored status marks on sidebar workspace rows: waiting for you, running, and recently finished, so the next workspace to open is obvious.",
-        "zh": "在侧边栏工作区行上显示彩色状态：等待你处理、运行中、刚刚完成，一眼看出下一个该打开的工作区。"
+        "en": "Workspace status marks plus a pinned-conversation section above the sidebar list: waiting for you, running, recently finished, with pins grouped per workspace and persisted.",
+        "zh": "侧边栏工作区状态标记，以及列表上方的已置顶会话区：等待你处理、运行中、刚刚完成；置顶按工作区分组并持久保存。"
       },
       "category": "ui"
     }
