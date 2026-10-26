@@ -28,8 +28,8 @@
         "zh": "工作区状态"
       },
       "description": {
-        "en": "Colored status marks on sidebar workspace rows: waiting for you, running, and recently finished — aggregated from the group's sessions, without replacing the sidebar.",
-        "zh": "侧边栏工作区行上的状态标记：等待你处理、运行中、刚刚完成——聚合自该分组内的会话，不替换侧边栏。"
+        "en": "Workspace status marks, a pinned-conversation section above the sidebar list and pinned-only notifications: waiting for you, running, recently finished, grouped per workspace and persisted.",
+        "zh": "侧边栏工作区状态标记、列表上方的已置顶会话区，以及仅针对置顶会话的通知：等待你处理、运行中、刚刚完成；置顶按工作区分组并持久保存。"
       },
       "author": "stijnus",
       "homepage": "https://github.com/Stijnus/dsh-workspace-status",
@@ -45,7 +45,11 @@
           "sidebar",
           "workspace",
           "status",
-          "indicator"
+          "indicator",
+          "pin",
+          "pinned",
+          "notification",
+          "notify"
         ]
       },
       "versions": [
@@ -59,6 +63,17 @@
             "dsh": ">=0.2.1-rc.2 <0.3.0-0"
           },
           "publishTimestamp": 1792967515
+        },
+        {
+          "version": "0.3.0",
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org/"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+          },
+          "publishTimestamp": 1793015978
         }
       ]
     }
