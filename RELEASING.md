@@ -5,10 +5,11 @@ commit and publishes it to npm with a provenance attestation. The workflow does
 not create the GitHub release or update the market index — finish the checklist
 below after npm confirms the version.
 
-## Trusted publishing (setup required)
+## Trusted publishing
 
-Not configured yet. Before the first tagged release, add this repository as a
-trusted publisher on the package's npm settings page
+Configured for this repository; the `0.1.0` and `0.3.0` releases were published
+through it. If you ever need to recreate the npm-side setup, add this repository
+as a trusted publisher on the package's npm settings page
 (<https://www.npmjs.com/package/dsh-workspace-status/settings>, signed in with
 2FA), or from a terminal with an authenticated npm login:
 
@@ -33,8 +34,11 @@ carries a SLSA provenance attestation (`https://slsa.dev/provenance/v1`).
 
 1. Update `CHANGELOG.md` and `package.json` (`version`).
 2. Run `npm test` and `npm pack --dry-run`.
-3. Commit, then tag and push: `git tag v0.1.0 && git push origin v0.1.0`.
+3. Commit, then tag and push: `git tag v<version> && git push origin v<version>`.
 4. Wait for the release workflow to verify the published version.
-5. Update `market-index.json` with the published version and, if publishing to
-   the Stijnus market index, push that repo as well.
-6. Create the GitHub release for the tag.
+5. Update `market-index.json` with the published version and its registry
+   `publishTimestamp`, then push it.
+6. Create the GitHub release for the tag:
+   `gh release create v<version> --title "<version> — <summary>" --notes-file <file>`.
+7. Install the registry build over the dev copy when done:
+   `dsh plugin --profile desktop add dsh-workspace-status@<version>`.
