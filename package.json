@@ -1,7 +1,7 @@
 {
   "name": "dsh-workspace-status",
-  "version": "0.2.0",
-  "description": "Workspace status marks and a pinned-conversation section for the DeepSeek Harness sidebar.",
+  "version": "0.3.0",
+  "description": "Workspace status marks, a pinned-conversation section and pinned-only notifications for the DeepSeek Harness sidebar.",
   "type": "module",
   "license": "MIT",
   "main": "index.js",
@@ -18,7 +18,11 @@
     "indicator",
     "pin",
     "pinned",
-    "conversation"
+    "conversation",
+    "notification",
+    "notify",
+    "desktop-notification",
+    "sound"
   ],
   "publishConfig": {
     "access": "public"
@@ -59,8 +63,8 @@
     },
     "catalog": {
       "summary": {
-        "en": "Workspace status marks plus a pinned-conversation section above the sidebar list: waiting for you, running, recently finished, with pins grouped per workspace and persisted.",
-        "zh": "侧边栏工作区状态标记，以及列表上方的已置顶会话区：等待你处理、运行中、刚刚完成；置顶按工作区分组并持久保存。"
+        "en": "Workspace status marks, a pinned-conversation section above the sidebar list and pinned-only notifications: waiting for you, running, recently finished, grouped per workspace and persisted.",
+        "zh": "侧边栏工作区状态标记、列表上方的已置顶会话区，以及仅针对置顶会话的通知：等待你处理、运行中、刚刚完成；置顶按工作区分组并持久保存。"
       },
       "category": "ui"
     }

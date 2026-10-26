@@ -20,5 +20,21 @@
   "time.now": "now",
   "time.minutes": "{n}min",
   "time.hours": "{n}h",
-  "time.days": "{n}d"
+  "time.days": "{n}d",
+  "notify.enable": "Enable notifications for pinned conversations",
+  "notify.disable": "Turn notifications off",
+  "notify.permissionNeeded": "Click to allow notifications",
+  "notify.blocked": "Notifications are blocked by the system",
+  "notify.soundOn": "Turn notification sound off",
+  "notify.soundOff": "Turn notification sound on",
+  "notify.enabled.title": "Pinned notifications on",
+  "notify.enabled.body": "Pinned conversations will notify you when they need you or finish.",
+  "notify.waitingReason.approval": "Waiting for approval",
+  "notify.waitingReason.planReview": "Plan awaiting review",
+  "notify.waitingReason.question": "Waiting for an answer",
+  "notify.waitingReason.default": "Waiting for you",
+  "notify.waiting.title": "{title} needs you",
+  "notify.waiting.body": "{reason} · {workspace}",
+  "notify.finished.title": "{title} finished",
+  "notify.finished.body": "Finished and not opened yet · {workspace}"
 }

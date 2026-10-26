@@ -6,6 +6,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-26
+
+### Added
+
+- Pinned-only notifications. The pinned section watches the live status of
+  pinned conversations and notifies on transitions: a pinned conversation
+  starts waiting for you (approval, plan review or question) or finishes
+  unread. Running → idle with an unread completion fires once; repeated
+  renders, kind changes and late unread states are deduplicated, and the
+  first observation after a reload stays silent.
+- Desktop/OS notifications when the window is in the background, plus in-app
+  notices inside the pinned section so a focused window still surfaces the
+  event. Clicking a row-shaped notice opens that pinned conversation; notices
+  auto-dismiss after eight seconds or via the close button.
+- A bell toggle in the pinned section header turns pinned notifications on or
+  off and requests notification permission on first use; a speaker toggle
+  enables an optional two-note chime. Both preferences persist in browser
+  storage. The bell falls back to in-app notices when the OS blocks
+  notifications, and enabling notifications shows a one-off test notice.
+- Notifications are only emitted for transitions while the app is running;
+  they are not external push and do not notify sessions outside the pin set.
+
 ## [0.2.0] - 2026-10-26
 
 ### Added

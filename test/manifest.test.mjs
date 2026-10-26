@@ -95,6 +95,22 @@ test('locale dictionaries cover the same keys', async () => {
     'time.minutes',
     'time.hours',
     'time.days',
+    'notify.enable',
+    'notify.disable',
+    'notify.permissionNeeded',
+    'notify.blocked',
+    'notify.soundOn',
+    'notify.soundOff',
+    'notify.enabled.title',
+    'notify.enabled.body',
+    'notify.waitingReason.approval',
+    'notify.waitingReason.planReview',
+    'notify.waitingReason.question',
+    'notify.waitingReason.default',
+    'notify.waiting.title',
+    'notify.waiting.body',
+    'notify.finished.title',
+    'notify.finished.body',
   ]) {
     assert.equal(typeof en[key], 'string', `en.${key}`)
     assert.equal(typeof zh[key], 'string', `zh.${key}`)

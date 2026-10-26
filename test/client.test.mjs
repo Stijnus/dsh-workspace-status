@@ -441,3 +441,72 @@ test('an archived pinned session is neither shown nor hidden', () => {
   const css = styleText(tree)
   assert.ok(!css.includes('data-row-key="session:s1"'))
 })
+
+test('notification diff is silent on first sight and fires on waiting transitions', () => {
+  const { module } = loadClient()
+  const { notificationEvents, notificationContent } = module.__test
+  const base = { id: 's1', title: 'Book flights', workspace: 'travel', pendingKind: 'approval', running: true, completionUnread: false }
+  const first = notificationEvents(new Map(), [base])
+  assert.equal(first.events.length, 0)
+  const same = notificationEvents(first.next, [base])
+  assert.equal(same.events.length, 0)
+  const changed = notificationEvents(first.next, [{ ...base, pendingKind: 'question' }])
+  assert.equal(changed.events.length, 1)
+  assert.equal(changed.events[0].type, 'waiting')
+  const cleared = notificationEvents(changed.next, [{ ...base, pendingKind: null, running: false }])
+  assert.equal(cleared.events.length, 0)
+  const again = notificationEvents(cleared.next, [{ ...base, pendingKind: 'approval', running: true }])
+  assert.equal(again.events.length, 1)
+  const content = notificationContent(again.events[0])
+  assert.match(content.title, /Book flights/)
+  assert.match(content.body, /approval/i)
+  assert.match(content.body, /travel/)
+})
+
+test('finished notifications fire once when a running pinned session stops unread', () => {
+  const { module } = loadClient()
+  const { notificationEvents } = module.__test
+  const running = { id: 's1', title: 'Book flights', workspace: 'travel', pendingKind: null, running: true, completionUnread: false }
+  const seen = notificationEvents(new Map(), [running])
+  assert.equal(seen.events.length, 0)
+  const finished = notificationEvents(seen.next, [{ ...running, running: false, completionUnread: true }])
+  assert.equal(finished.events.length, 1)
+  assert.equal(finished.events[0].type, 'finished')
+  const repeat = notificationEvents(finished.next, [{ ...running, running: false, completionUnread: true }])
+  assert.equal(repeat.events.length, 0)
+  const late = { id: 's2', title: 'Late', workspace: 'travel', pendingKind: null, running: false, completionUnread: false }
+  const lateSeen = notificationEvents(new Map(), [late])
+  const lateFinished = notificationEvents(lateSeen.next, [{ ...late, completionUnread: true }])
+  assert.equal(lateFinished.events.length, 1)
+  assert.equal(lateFinished.events[0].session.id, 's2')
+})
+
+test('notification state is pruned when a session stops being pinned', () => {
+  const { module } = loadClient()
+  const { notificationEvents } = module.__test
+  const session = { id: 's1', title: 'One', workspace: 'w', pendingKind: null, running: false, completionUnread: false }
+  const first = notificationEvents(new Map(), [session])
+  assert.ok(first.next.has('s1'))
+  const removed = notificationEvents(first.next, [])
+  assert.equal(removed.events.length, 0)
+  assert.equal(removed.next.size, 0)
+})
+
+test('pinned entries carry the notification facts and workspace title', () => {
+  const { module } = loadClient()
+  const { buildPinnedView } = module.__test
+  const statuses = new Map([['s1', { running: true, pendingInteraction: { kind: 'approval' } }]])
+  const view = buildPinnedView(['s1'], pinneededItems(), pinneededSessions(), statuses, [], PIN_NOW)
+  const entry = view.groups[0].sessions[0]
+  assert.equal(entry.pendingKind, 'approval')
+  assert.equal(entry.running, true)
+  assert.equal(entry.workspace, 'api')
+})
+
+function pinneededItems() {
+  return [workspace('w-api', 'api', ['s1'])]
+}
+
+function pinneededSessions() {
+  return { s1: { id: 's1', displayTitle: 'One', updatedAt: PIN_NOW, running: true } }
+}

@@ -16,6 +16,10 @@ Sidebar upgrades for DeepSeek Harness:
    pin action leave the regular workspace groups and appear in a dedicated
    section above the browsing region, grouped per workspace with the same
    header treatment and a pin icon on every row.
+3. **Pinned notifications** — when a pinned conversation starts waiting for
+   you or finishes unread, the plugin can raise a desktop notification (when the
+   window is in the background) and always shows an in-app notice in the pinned
+   section. Bell and chime toggles sit in the section header.
 
 Harness draws a status dot on every conversation row, but nothing on the
 workspace row above it. Collapse a group, or scroll it out of view, and the
@@ -65,6 +69,41 @@ action remains reachable), which means a workspace whose sessions are all
 pinned may read as an empty group under **Workspaces** while its sessions sit in
 the Pinned section.
 
+## Pinned notifications
+
+The bell in the Pinned header (next to the count) controls notifications; the
+speaker enables an optional two-note chime. Both preferences persist in browser
+storage and default to **notifications on, sound off**.
+
+What fires an event:
+
+- a pinned conversation **starts waiting for you** — approval, plan review or a
+  question (the notification names the reason and workspace);
+- a pinned conversation **finishes unread** — a running session stops and its
+  completion mark is still unread.
+
+Only transitions fire, only for pinned conversations. The first observation of
+a session after mount is silent, so reloading the app does not replay old
+events; repeated renders of the same waiting state are quiet, while a change of
+reason (approval → question) is a new event. Finished fires once per run.
+
+Delivery:
+
+- when the window is in the background and the platform has granted
+  notification permission, a **desktop/OS notification** is raised — clicking it
+  focuses the app and opens that conversation;
+- an **in-app notice** is always added inside the pinned section (also when the
+  OS blocks notifications), with a status icon, title and reason; click it to
+  open the conversation or dismiss it with **×**. Notices auto-dismiss after
+  eight seconds.
+
+The first click on the bell requests notification permission and shows a
+one-off test notice. If the OS denies or blocks notifications, the plugin falls
+back to the in-app notices and the bell tooltip says so. Notifications are
+client-side only: they fire while the app is running and are not external push
+(no email, IM or web push), and sessions outside the pin set never trigger
+them.
+
 ## Quick start
 
 ```sh
@@ -72,7 +111,8 @@ dsh plugin --profile web add dsh-workspace-status
 ```
 
 Restart the Harness (or refresh the Web UI). Workspace rows gain a colored status
-mark; pin a conversation to see the Pinned section.
+mark; pin a conversation to see the Pinned section and its bell/speaker
+controls.
 
 <sub>More from this suite: [Moodboard](https://github.com/Stijnus/dsh-moodboard) · [Composer Predictions](https://github.com/Stijnus/dsh-composer-predictions) · [Move to Workspace](https://github.com/Stijnus/dsh-move-to-workspace) · [Workspace Status](https://github.com/Stijnus/dsh-workspace-status) · [Prompt Rewrite](https://github.com/Stijnus/dsh-prompt-optimizer)</sub>
 
@@ -168,6 +208,20 @@ Pinned section:
 5. Restart the Harness — the same pins are listed again, because the Host
    persists the registry pin set in the profile workspace registry.
 
+Pinned notifications:
+
+1. Click the bell in the Pinned header. On first use it requests notification
+   permission and shows a test notice; the bell is highlighted while enabled.
+2. Pin a conversation that is running, then let it finish without opening it —
+   an in-app notice appears in the Pinned section; if the app window is in the
+   background, a desktop notification is raised as well. Clicking either opens
+   the conversation.
+3. Trigger an approval, plan review or question in a pinned conversation — the
+   notice names the reason and workspace and remains until dismissed.
+4. Click the bell again to turn notifications off, or the **×** on a notice to
+   dismiss it early. Reload: the bell, speaker and notification preferences
+   persist.
+
 If the plugin is missing, check the browser console for a failed client bundle
 load first; nothing else in the sidebar is affected.
 
@@ -191,8 +245,10 @@ load first; nothing else in the sidebar is affected.
 - Unpin calls `ctx.workspaces.unpinSession(id)`; opening a pinned row calls
   `ctx.uiWorkspace.openSession(id)`. The pin set itself comes from the
   Workspace snapshot, so both the official tree and this section stay in sync.
-- Both collapse memories live in browser `localStorage`; no plugin settings are
-  written.
+- Collapse memories and notification preferences live in browser
+  `localStorage`; no plugin settings are written. Notification delivery uses the
+  renderer's standard `Notification` API (and Web Audio for the optional chime);
+  the plugin does not add a host service.
 - Removing the plugin removes the mount, the stylesheet and the inserted
   section container; no profile or session data is changed by the plugin.
 

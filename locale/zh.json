@@ -20,5 +20,21 @@
   "time.now": "刚刚",
   "time.minutes": "{n} 分钟",
   "time.hours": "{n} 小时",
-  "time.days": "{n} 天"
+  "time.days": "{n} 天",
+  "notify.enable": "开启已置顶会话通知",
+  "notify.disable": "关闭通知",
+  "notify.permissionNeeded": "点击以允许通知",
+  "notify.blocked": "系统已阻止通知",
+  "notify.soundOn": "关闭提示音",
+  "notify.soundOff": "开启提示音",
+  "notify.enabled.title": "已开启置顶通知",
+  "notify.enabled.body": "已置顶会话在需要你或完成时会通知你。",
+  "notify.waitingReason.approval": "等待审批",
+  "notify.waitingReason.planReview": "计划待审",
+  "notify.waitingReason.question": "等待回答",
+  "notify.waitingReason.default": "等待你处理",
+  "notify.waiting.title": "{title} 需要你",
+  "notify.waiting.body": "{reason} · {workspace}",
+  "notify.finished.title": "{title} 已完成",
+  "notify.finished.body": "已完成且尚未打开 · {workspace}"
 }

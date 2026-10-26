@@ -69,6 +69,12 @@ window.__ModuleLoader__.load({
     /** Browser-local collapse memory for the pinned section. */
     const VIEW_STORE_KEY = 'dsh-workspace-status/pinned-view/v1'
 
+    /** Browser-local preference store for pinned-conversation notifications. */
+    const NOTIFY_STORE_KEY = 'dsh-workspace-status/notifications/v1'
+
+    /** The renderer's Notification constructor, when the platform has one. */
+    const NOTIFICATION_API = typeof Notification === 'undefined' ? undefined : Notification
+
     /** The insertion anchor: SidebarRoot's region area owns the browsing slot. */
     const REGION_SELECTOR = '[class*="_regionArea"]'
 
@@ -108,6 +114,23 @@ window.__ModuleLoader__.load({
         'time.minutes': '{n}min',
         'time.hours': '{n}h',
         'time.days': '{n}d',
+        'notify.enable': 'Enable notifications for pinned conversations',
+        'notify.disable': 'Turn notifications off',
+        'notify.permissionNeeded': 'Click to allow notifications',
+        'notify.blocked': 'Notifications are blocked by the system',
+        'notify.soundOn': 'Turn notification sound off',
+        'notify.soundOff': 'Turn notification sound on',
+        'notify.enabled.title': 'Pinned notifications on',
+        'notify.enabled.body': 'Pinned conversations will notify you when they need you or finish.',
+        'notify.waitingReason.approval': 'Waiting for approval',
+        'notify.waitingReason.planReview': 'Plan awaiting review',
+        'notify.waitingReason.question': 'Waiting for an answer',
+        'notify.waitingReason.default': 'Waiting for you',
+        'notify.waiting.title': '{title} needs you',
+        'notify.waiting.body': '{reason} · {workspace}',
+        'notify.finished.title': '{title} finished',
+        'notify.finished.body': 'Finished and not opened yet · {workspace}',
+        'notify.dismiss': 'Dismiss',
       },
       zh: {
         'activity.summary': '工作区状态：{clauses} — {names}',
@@ -128,6 +151,23 @@ window.__ModuleLoader__.load({
         'time.minutes': '{n} 分钟',
         'time.hours': '{n} 小时',
         'time.days': '{n} 天',
+        'notify.enable': '开启已置顶会话通知',
+        'notify.disable': '关闭通知',
+        'notify.permissionNeeded': '点击以允许通知',
+        'notify.blocked': '系统已阻止通知',
+        'notify.soundOn': '关闭提示音',
+        'notify.soundOff': '开启提示音',
+        'notify.enabled.title': '已开启置顶通知',
+        'notify.enabled.body': '已置顶会话在需要你或完成时会通知你。',
+        'notify.waitingReason.approval': '等待审批',
+        'notify.waitingReason.planReview': '计划待审',
+        'notify.waitingReason.question': '等待回答',
+        'notify.waitingReason.default': '等待你处理',
+        'notify.waiting.title': '{title} 需要你',
+        'notify.waiting.body': '{reason} · {workspace}',
+        'notify.finished.title': '{title} 已完成',
+        'notify.finished.body': '已完成且尚未打开 · {workspace}',
+        'notify.dismiss': '关闭',
       },
     }
 
@@ -229,6 +269,26 @@ window.__ModuleLoader__.load({
       }, h('path', { d: PIN_PATH, fill: 'currentColor' }))
     }
 
+    /** Material bell glyph for the notification toggle. */
+    const BELL_PATH = 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'
+
+    /** Material volume glyph for the optional chime toggle. */
+    const VOLUME_PATH = 'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z'
+
+    /** Render the notification bell. */
+    function bellIcon() {
+      return h('svg', {
+        width: 14, height: 14, viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false',
+      }, h('path', { d: BELL_PATH, fill: 'currentColor' }))
+    }
+
+    /** Render the sound toggle glyph. */
+    function volumeIcon() {
+      return h('svg', {
+        width: 14, height: 14, viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false',
+      }, h('path', { d: VOLUME_PATH, fill: 'currentColor' }))
+    }
+
     /**
      * One Workspace's tally before the states are split.
      * @typedef {{ key: string, title: string, waiting: number, running: number, done: number }} GroupTally
@@ -304,15 +364,33 @@ window.__ModuleLoader__.load({
      * @param sessions - all summaries (subagent fallback).
      * @returns `warning`, `ongoing`, `done`, or undefined for idle.
      */
-    function sessionMark(sessionId, row, statuses, children, sessions) {
+    function sessionFacts(sessionId, row, statuses, children, sessions) {
       const status = statuses?.get?.(sessionId)
-      if (status?.pendingInteraction !== undefined && status?.pendingInteraction !== null) return 'warning'
+      const interaction = status?.pendingInteraction
+      const pendingKind = interaction !== undefined && interaction !== null
+        ? typeof interaction.kind === 'string' && interaction.kind !== ''
+          ? interaction.kind
+          : 'default'
+        : null
       const running = status?.running === true
         || (status?.running === undefined && row?.running === true)
         || runsChild(sessionId, children, sessions, statuses)
-      if (running) return 'ongoing'
-      if (status?.completionUnread === true) return 'done'
-      return undefined
+      const completionUnread = status?.completionUnread === true
+      const mark = pendingKind !== null ? 'warning' : running ? 'ongoing' : completionUnread ? 'done' : undefined
+      return { pendingKind, running, completionUnread, mark }
+    }
+
+    /**
+     * One Session's live mark, matching the shipped row precedence.
+     * @param sessionId - Session to classify.
+     * @param row - its summary.
+     * @param statuses - Session UI status map.
+     * @param children - subagent children map.
+     * @param sessions - all summaries (subagent fallback).
+     * @returns `warning`, `ongoing`, `done`, or undefined for idle.
+     */
+    function sessionMark(sessionId, row, statuses, children, sessions) {
+      return sessionFacts(sessionId, row, statuses, children, sessions).mark
     }
 
     /**
@@ -599,11 +677,16 @@ window.__ModuleLoader__.load({
           : typeof row.title === 'string' && row.title !== ''
             ? row.title
             : message('pinned.untitled')
+        const facts = sessionFacts(id, row, statusMap, children, sessions)
         const entry = {
           id,
           title,
+          workspace: titles.get(key) ?? '',
           time: relativeTime(row.updatedAt, now),
-          mark: sessionMark(id, row, statusMap, children, sessions),
+          mark: facts.mark,
+          pendingKind: facts.pendingKind,
+          running: facts.running,
+          completionUnread: facts.completionUnread,
           current: (row.retainedBy?.mainView ?? 0) > 0,
         }
         const list = byGroup.get(key)
@@ -658,13 +741,14 @@ window.__ModuleLoader__.load({
       '--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);',
       '--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2)}',
       '.dsws-pinned[data-rail="true"],.dsws-pinned:empty{display:none}',
-      '.dsws-pinned-header{display:flex;align-items:center;gap:6px;box-sizing:border-box;width:100%;height:30px;',
+      '.dsws-pinned-headerrow{display:flex;align-items:center;gap:2px;margin:0;padding:0 2px 0 0}',
+      '.dsws-pinned-header{display:flex;align-items:center;gap:6px;box-sizing:border-box;flex:1;min-width:0;height:30px;',
       'margin:0;padding:0 8px;border:0;border-radius:var(--dsw-radius-md);background:none;',
       'color:var(--dsw-alias-label-tertiary);font:inherit;font-size:13px;line-height:18px;font-weight:500;',
       'cursor:pointer;text-align:left;user-select:none}',
       '.dsws-pinned-header:hover{background:var(--dsw-alias-interactive-bg-hover)}',
       '.dsws-pinned-header:focus-visible,.dsws-pinned-group-head:focus-visible,',
-      '.dsws-pinned-row:focus-visible,.dsws-pinned-unpin:focus-visible{',
+      '.dsws-pinned-row:focus-visible,.dsws-pinned-unpin:focus-visible,.dsws-pinned-tool:focus-visible{',
       'outline:var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));',
       'outline-offset:-2px}',
       '.dsws-pinned-glyph{width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center}',
@@ -675,6 +759,31 @@ window.__ModuleLoader__.load({
       'justify-content:center;color:var(--dsw-alias-label-tertiary);transform:rotate(0deg);',
       'transition:transform .15s ease}',
       '.dsws-pinned-chevron[data-open="true"]{transform:rotate(90deg)}',
+      '.dsws-pinned-tools{display:flex;align-items:center;gap:1px;flex:none;padding-right:2px}',
+      '.dsws-pinned-tool{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;',
+      'padding:0;border:0;border-radius:var(--dsw-radius-sm);background:none;color:var(--dsw-alias-label-tertiary);',
+      'cursor:pointer;flex:none}',
+      '.dsws-pinned-tool:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}',
+      '.dsws-pinned-tool[data-on="true"]{color:var(--dsw-alias-label-secondary)}',
+      '.dsws-pinned-tool[data-blocked="true"]{opacity:.55}',
+      '.dsws-pinned-notices{display:flex;flex-direction:column;gap:2px;margin:2px 4px 4px}',
+      '.dsws-pinned-notice{display:flex;align-items:flex-start;gap:6px;box-sizing:border-box;width:100%;',
+      'padding:6px 8px;border:0;border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-interactive-bg-hover);',
+      'color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:16px;text-align:left;cursor:pointer}',
+      '.dsws-pinned-notice:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.dsws-pinned-notice-icon{flex:none;width:14px;height:14px;display:inline-flex;align-items:center;',
+      'justify-content:center;margin-top:1px}',
+      '.dsws-pinned-notice[data-kind="waiting"] .dsws-pinned-notice-icon{color:var(--dsw-alias-state-warn-primary)}',
+      '.dsws-pinned-notice[data-kind="finished"] .dsws-pinned-notice-icon{color:var(--dsw-alias-state-success-primary)}',
+      '.dsws-pinned-notice[data-kind="test"] .dsws-pinned-notice-icon{color:var(--dsw-alias-state-business-primary)}',
+      '.dsws-pinned-notice-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}',
+      '.dsws-pinned-notice-title{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.dsws-pinned-notice-body{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:15px;',
+      'overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
+      '.dsws-pinned-notice-close{flex:none;width:18px;height:18px;display:inline-flex;align-items:center;',
+      'justify-content:center;padding:0;border:0;border-radius:var(--dsw-radius-sm);background:none;',
+      'color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px;line-height:18px}',
+      '.dsws-pinned-notice-close:hover{color:var(--dsw-alias-label-primary)}',
       '.dsws-pinned-group{margin-top:1px}',
       '.dsws-pinned-group-head{display:flex;align-items:center;gap:6px;box-sizing:border-box;width:100%;height:34px;',
       'margin:0;padding:0 8px;border:0;border-radius:var(--dsw-radius-md);background:none;',
@@ -719,6 +828,135 @@ window.__ModuleLoader__.load({
       '.dsws-pinned-dot[data-state="ongoing"]{animation:none;opacity:.7}',
       '.dsws-pinned-chevron,.dsws-pinned-arrow{transition:none}}',
     ].join('')
+
+    /**
+     * Diff the status of the pinned conversations against the previous render.
+     *
+     * Only transitions produce events: the first observation of a session is
+     * silent (so reloading the app with a conversation already waiting does not
+     * replay old news), repeated renders of the same waiting kind stay quiet,
+     * and a kind change (approval → question) is a new event. Finished fires
+     * once when a running session stops with its unread completion mark set.
+     *
+     * @param previous - previous per-session status map.
+     * @param sessions - pinned sessions from the current model.
+     * @returns the events to deliver plus the map for the next render.
+     */
+    function notificationEvents(previous, sessions) {
+      const next = new Map()
+      const events = []
+      for (const session of Array.isArray(sessions) ? sessions : []) {
+        const pendingKind = typeof session.pendingKind === 'string' ? session.pendingKind : null
+        const running = session.running === true
+        const completionUnread = session.completionUnread === true
+        const state = { pendingKind, running, completionUnread }
+        const prior = previous instanceof Map ? previous.get(session.id) : undefined
+        if (prior === undefined) {
+          next.set(session.id, state)
+          continue
+        }
+        if (pendingKind !== null && pendingKind !== prior.pendingKind) {
+          events.push({ type: 'waiting', session })
+        }
+        if (completionUnread && !running && (prior.running === true || prior.completionUnread !== true)) {
+          events.push({ type: 'finished', session })
+        }
+        next.set(session.id, state)
+      }
+      return { events, next }
+    }
+
+    /** The OS-notification title/body/tag for one diff event. */
+    function notificationContent(event) {
+      const workspace = typeof event.session.workspace === 'string' && event.session.workspace !== ''
+        ? event.session.workspace
+        : message('activity.unnamed')
+      if (event.type === 'waiting') {
+        const kind = event.session.pendingKind
+        const reasonKey = kind === 'approval'
+          ? 'notify.waitingReason.approval'
+          : kind === 'plan-review'
+            ? 'notify.waitingReason.planReview'
+            : kind === 'question'
+              ? 'notify.waitingReason.question'
+              : 'notify.waitingReason.default'
+        return {
+          title: message('notify.waiting.title', { title: event.session.title }),
+          body: message('notify.waiting.body', { reason: message(reasonKey), workspace }),
+          tag: `dsws:${event.session.id}:waiting:${kind ?? 'default'}`,
+        }
+      }
+      return {
+        title: message('notify.finished.title', { title: event.session.title }),
+        body: message('notify.finished.body', { workspace }),
+        tag: `dsws:${event.session.id}:finished`,
+      }
+    }
+
+    /** Read the notification preferences without assuming storage access. */
+    function readNotificationPrefs() {
+      const fallback = { enabled: true, sound: false }
+      if (typeof localStorage === 'undefined') return fallback
+      try {
+        const raw = localStorage.getItem(NOTIFY_STORE_KEY)
+        if (typeof raw !== 'string' || raw === '') return fallback
+        const parsed = JSON.parse(raw)
+        if (parsed === null || typeof parsed !== 'object') return fallback
+        return {
+          enabled: parsed.enabled !== false,
+          sound: parsed.sound === true,
+        }
+      } catch {
+        return fallback
+      }
+    }
+
+    /** Persist notification preferences and return the value for a state update. */
+    function writeNotificationPrefs(prefs) {
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(NOTIFY_STORE_KEY, JSON.stringify(prefs))
+        } catch {
+          // Storage may be unavailable; the in-memory preference still applies.
+        }
+      }
+      return prefs
+    }
+
+    /** Lazily created audio context for the optional chime. */
+    let audioContext
+
+    /**
+     * Play the short two-note chime. Failures are contained: a locked or
+     * unsupported audio context must never interfere with the notification.
+     */
+    function playChime() {
+      try {
+        const Ctx = typeof window === 'undefined'
+          ? undefined
+          : window.AudioContext ?? window.webkitAudioContext
+        if (typeof Ctx !== 'function') return
+        audioContext = audioContext ?? new Ctx()
+        if (audioContext.state === 'suspended') audioContext.resume().catch(() => {})
+        const start = audioContext.currentTime
+        for (const [index, frequency] of [880, 1174.66].entries()) {
+          const oscillator = audioContext.createOscillator()
+          const gain = audioContext.createGain()
+          const at = start + index * 0.08
+          oscillator.type = 'sine'
+          oscillator.frequency.value = frequency
+          gain.gain.setValueAtTime(0.0001, at)
+          gain.gain.exponentialRampToValueAtTime(0.06, at + 0.012)
+          gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.13)
+          oscillator.connect(gain)
+          gain.connect(audioContext.destination)
+          oscillator.start(at)
+          oscillator.stop(at + 0.14)
+        }
+      } catch {
+        // Audio is optional; never surface a failure.
+      }
+    }
 
     /** Read the browser-local collapse memory without assuming storage access. */
     function readViewState() {
@@ -802,6 +1040,140 @@ window.__ModuleLoader__.load({
     function PinnedSection({ model, openSession, unpinSession }) {
       const [view, setView] = React.useState(readViewState)
       const [pending, setPending] = React.useState(() => ({}))
+      const [notifyPrefs, setNotifyPrefs] = React.useState(readNotificationPrefs)
+      const [permission, setPermission] = React.useState(
+        () => NOTIFICATION_API === undefined ? 'unsupported' : NOTIFICATION_API.permission,
+      )
+      const notifyStateRef = React.useRef(new Map())
+      const [notices, setNotices] = React.useState([])
+      const noticeTimers = React.useRef(new Map())
+
+      const dismissNotice = (id) => {
+        const timer = noticeTimers.current.get(id)
+        if (timer !== undefined) {
+          clearTimeout(timer)
+          noticeTimers.current.delete(id)
+        }
+        setNotices((previous) => previous.filter((notice) => notice.id !== id))
+      }
+
+      const pushNotice = (notice) => {
+        const id = `${notice.sessionId ?? 'notice'}:${Date.now()}:${Math.random().toString(36).slice(2, 6)}`
+        setNotices((previous) => [...previous.slice(-2), { ...notice, id }])
+        const timer = setTimeout(() => {
+          noticeTimers.current.delete(id)
+          setNotices((previous) => previous.filter((entry) => entry.id !== id))
+        }, 8000)
+        noticeTimers.current.set(id, timer)
+      }
+
+      React.useEffect(() => () => {
+        for (const timer of noticeTimers.current.values()) clearTimeout(timer)
+        noticeTimers.current.clear()
+      }, [])
+
+      // The permission can change outside the renderer (OS settings); re-read
+      // it when the section mounts so the bell state matches reality.
+      React.useEffect(() => {
+        if (NOTIFICATION_API === undefined) return
+        setPermission(NOTIFICATION_API.permission)
+      }, [])
+
+      // Deliver transitions for pinned conversations only. The previous map
+      // advances even while notifications are off, so turning them on cannot
+      // replay history.
+      React.useEffect(() => {
+        const sessions = model.groups.flatMap((group) => group.sessions)
+        const { events, next } = notificationEvents(notifyStateRef.current, sessions)
+        notifyStateRef.current = next
+        if (events.length === 0) return
+        if (!notifyPrefs.enabled) return
+        const focused = typeof document !== 'undefined' && typeof document.hasFocus === 'function'
+          ? document.hasFocus()
+          : true
+        let delivered = false
+        for (const event of events) {
+          const session = event.session
+          if (session.current === true && focused) continue
+          const content = notificationContent(event)
+          // In-app notice always (it is the fallback when the OS refuses or
+          // the window is focused); the OS notification only when the window
+          // is in the background and the platform granted permission.
+          pushNotice({
+            sessionId: session.id,
+            kind: event.type,
+            title: content.title,
+            body: content.body,
+          })
+          delivered = true
+          if (!focused && permission === 'granted') {
+            try {
+              const notification = new NOTIFICATION_API(content.title, {
+                body: content.body,
+                tag: content.tag,
+              })
+              notification.onclick = () => {
+                try { window.focus() } catch {}
+                openSession(session.id)
+                try { notification.close() } catch {}
+              }
+            } catch {
+              // A denied or unsupported constructor must not break the section.
+            }
+          }
+        }
+        if (delivered && notifyPrefs.sound) playChime()
+      }, [model, notifyPrefs.enabled, notifyPrefs.sound, permission, openSession])
+
+      const sendTestNotification = (osAllowed = permission === 'granted') => {
+        const title = message('notify.enabled.title')
+        const body = message('notify.enabled.body')
+        pushNotice({ kind: 'test', title, body })
+        if (NOTIFICATION_API !== undefined && osAllowed) {
+          try {
+            new NOTIFICATION_API(title, { body, tag: 'dsws:enabled' })
+          } catch {
+            // Permission may be denied between the check and the constructor.
+          }
+        }
+      }
+
+      const toggleNotifications = () => {
+        if (NOTIFICATION_API !== undefined && permission === 'default') {
+          // First use: ask for the OS permission, then keep notifications on
+          // and show the one-off test notice. A denial still leaves the
+          // in-app notices available.
+          Promise.resolve(NOTIFICATION_API.requestPermission())
+            .then((result) => {
+              setPermission(result)
+              setNotifyPrefs(writeNotificationPrefs({ ...notifyPrefs, enabled: true }))
+              sendTestNotification(result === 'granted')
+            })
+            .catch(() => {
+              setNotifyPrefs(writeNotificationPrefs({ ...notifyPrefs, enabled: true }))
+              sendTestNotification(false)
+            })
+          return
+        }
+        const enabled = !notifyPrefs.enabled
+        setNotifyPrefs(writeNotificationPrefs({ ...notifyPrefs, enabled }))
+        if (enabled) sendTestNotification()
+      }
+
+      const toggleSound = () => {
+        const sound = !notifyPrefs.sound
+        setNotifyPrefs(writeNotificationPrefs({ ...notifyPrefs, sound }))
+        if (sound) playChime()
+      }
+
+      const notificationsOn = notifyPrefs.enabled
+      const bellTitle = permission === 'denied' && notificationsOn
+        ? message('notify.blocked')
+        : permission === 'default' && notificationsOn
+          ? message('notify.permissionNeeded')
+          : notificationsOn
+            ? message('notify.disable')
+            : message('notify.enable')
 
       const toggleSection = () => {
         setView((previous) => writeViewState({
@@ -842,23 +1214,107 @@ window.__ModuleLoader__.load({
       const rows = []
 
       rows.push(h(
-        'button',
-        {
-          key: 'header',
-          type: 'button',
-          className: 'dsws-pinned-header',
-          'aria-expanded': String(sectionOpen),
-          'aria-label': message('pinned.sectionAria'),
-          onClick: toggleSection,
-        },
-        h('span', { className: 'dsws-pinned-glyph' }, pinIcon(14)),
-        h('span', { className: 'dsws-pinned-label' }, message('pinned.title')),
-        h('span', { className: 'dsws-pinned-count' }, String(model.total)),
-        h('span', {
-          className: 'dsws-pinned-chevron',
-          'data-open': sectionOpen ? 'true' : 'false',
-        }, chevronIcon()),
+        'div',
+        { key: 'header', className: 'dsws-pinned-headerrow' },
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'dsws-pinned-header',
+            'aria-expanded': String(sectionOpen),
+            'aria-label': message('pinned.sectionAria'),
+            onClick: toggleSection,
+          },
+          h('span', { className: 'dsws-pinned-glyph' }, pinIcon(14)),
+          h('span', { className: 'dsws-pinned-label' }, message('pinned.title')),
+          h('span', { className: 'dsws-pinned-count' }, String(model.total)),
+          h('span', {
+            className: 'dsws-pinned-chevron',
+            'data-open': sectionOpen ? 'true' : 'false',
+          }, chevronIcon()),
+        ),
+        h(
+          'span',
+          { className: 'dsws-pinned-tools' },
+          h('button', {
+            type: 'button',
+            className: 'dsws-pinned-tool',
+            title: bellTitle,
+            'aria-label': bellTitle,
+            'aria-pressed': String(notificationsOn),
+            'data-on': notificationsOn ? 'true' : 'false',
+            'data-blocked': permission === 'denied' ? 'true' : 'false',
+            onClick: toggleNotifications,
+          }, bellIcon()),
+          h('button', {
+            type: 'button',
+            className: 'dsws-pinned-tool',
+            title: notifyPrefs.sound ? message('notify.soundOn') : message('notify.soundOff'),
+            'aria-label': notifyPrefs.sound ? message('notify.soundOn') : message('notify.soundOff'),
+            'aria-pressed': String(notifyPrefs.sound),
+            'data-on': notifyPrefs.sound ? 'true' : 'false',
+            onClick: toggleSound,
+          }, volumeIcon()),
+        ),
       ))
+
+      if (notices.length > 0) {
+        rows.push(h(
+          'div',
+          {
+            key: 'notices',
+            className: 'dsws-pinned-notices',
+            role: 'status',
+            'aria-live': 'polite',
+          },
+          notices.map((notice) => {
+            const clickable = typeof notice.sessionId === 'string'
+            return h(
+              'div',
+              {
+                key: notice.id,
+                className: 'dsws-pinned-notice',
+                'data-kind': notice.kind,
+                role: clickable ? 'button' : undefined,
+                tabIndex: clickable ? 0 : undefined,
+                onClick: clickable
+                  ? () => { dismissNotice(notice.id); open(notice.sessionId) }
+                  : undefined,
+                onKeyDown: clickable
+                  ? (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    event.preventDefault()
+                    dismissNotice(notice.id)
+                    open(notice.sessionId)
+                  }
+                  : undefined,
+              },
+              h(
+                'span',
+                { className: 'dsws-pinned-notice-icon' },
+                notice.kind === 'test'
+                  ? bellIcon()
+                  : h('span', {
+                    className: 'dsws-pinned-dot',
+                    'data-state': notice.kind === 'waiting' ? 'warning' : 'done',
+                  }),
+              ),
+              h(
+                'span',
+                { className: 'dsws-pinned-notice-text' },
+                h('span', { className: 'dsws-pinned-notice-title' }, notice.title),
+                h('span', { className: 'dsws-pinned-notice-body' }, notice.body),
+              ),
+              h('button', {
+                type: 'button',
+                className: 'dsws-pinned-notice-close',
+                'aria-label': message('notify.dismiss'),
+                onClick: (event) => { event.stopPropagation(); dismissNotice(notice.id) },
+              }, '\u00d7'),
+            )
+          }),
+        ))
+      }
 
       if (sectionOpen) {
         for (const group of model.groups) {
@@ -1093,6 +1549,9 @@ window.__ModuleLoader__.load({
         buildPinnedView,
         hideCss,
         sessionMark,
+        sessionFacts,
+        notificationEvents,
+        notificationContent,
         WorkspaceStatus,
         FINISHED_WINDOW_MS,
       },
