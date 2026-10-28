@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-28
+
+### Added
+
+- A one-time, dismissible "star the suite" prompt in the app overlay links to
+  the five Stijnus plugin repositories. It shows at most once per browser and
+  the whole suite shares the marker, so installing all five cannot stack five
+  prompts.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added

@@ -111,18 +111,21 @@ function srText(tree) {
 
 const NOW = Date.now()
 
-test('the module registers exactly one additive footer entry', () => {
+test('the module registers the footer entry and the one-time star prompt', () => {
   const { definition, module, registrations } = mountClient()
   assert.equal(definition.id, 'dsh-workspace-status')
   assert.equal(typeof definition.factory, 'function')
   assert.equal(module.name, 'workspace-status')
   assert.equal(module.inject.length, 1)
   assert.equal(module.inject[0], 'slots')
-  assert.equal(registrations.length, 1)
-  const [{ spec }] = registrations
-  assert.equal(spec.name, 'sidebar.footer.action')
-  assert.equal(spec.id, 'workspace-status')
-  assert.equal(typeof spec.order, 'number')
+  assert.equal(registrations.length, 2)
+  const footer = registrations.find((entry) => entry.spec.name === 'sidebar.footer.action')
+  assert.ok(footer, 'the footer entry is registered')
+  assert.equal(footer.spec.id, 'workspace-status')
+  assert.equal(typeof footer.spec.order, 'number')
+  const star = registrations.find((entry) => entry.spec.name === 'shell.overlay')
+  assert.ok(star, 'the one-time star prompt registers on the shell overlay')
+  assert.equal(star.spec.id, 'workspace-status-star-cta')
 })
 
 test('renders nothing visible when the standard hooks are absent', () => {
