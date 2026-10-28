@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-28
+
+### Changed
+
+- Replaced the timed, one-time "star the suite" overlay prompt with a quiet,
+  user-initiated star link in the plugin's own UI. It never interrupts or
+  auto-opens; it links to the Stijnus DSH plugin suite on GitHub.
+
 ## [0.3.1] - 2026-10-28
 
 ### Added

@@ -111,7 +111,7 @@ function srText(tree) {
 
 const NOW = Date.now()
 
-test('the module registers the footer entry and the one-time star prompt', () => {
+test('the module registers the footer entry and the quiet star-suite settings link', () => {
   const { definition, module, registrations } = mountClient()
   assert.equal(definition.id, 'dsh-workspace-status')
   assert.equal(typeof definition.factory, 'function')
@@ -123,9 +123,10 @@ test('the module registers the footer entry and the one-time star prompt', () =>
   assert.ok(footer, 'the footer entry is registered')
   assert.equal(footer.spec.id, 'workspace-status')
   assert.equal(typeof footer.spec.order, 'number')
-  const star = registrations.find((entry) => entry.spec.name === 'shell.overlay')
-  assert.ok(star, 'the one-time star prompt registers on the shell overlay')
-  assert.equal(star.spec.id, 'workspace-status-star-cta')
+  const star = registrations.find((entry) => entry.spec.name === 'settings.general.item')
+  assert.ok(star, 'the quiet star link registers as a settings item')
+  assert.equal(star.spec.id, 'workspace-status-star')
+  assert.ok(!registrations.some((entry) => entry.spec.name === 'shell.overlay'), 'no timed star popup registers on the shell overlay')
 })
 
 test('renders nothing visible when the standard hooks are absent', () => {

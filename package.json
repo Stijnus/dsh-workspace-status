@@ -1,6 +1,6 @@
 {
   "name": "dsh-workspace-status",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Workspace status marks, a pinned-conversation section and pinned-only notifications for the DeepSeek Harness sidebar.",
   "type": "module",
   "license": "MIT",
